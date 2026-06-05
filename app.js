@@ -640,8 +640,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (resizer && footer) {
         resizer.addEventListener('mousedown', (e) => {
             e.preventDefault();
-            document.body.style.cursor = 'ns-resize';
+            document.body.style.cursor = 'row-resize';
             resizer.classList.add('resizing');
+            document.body.classList.add('layout-resizing');
             
             const startY = e.clientY;
             const startHeight = footer.offsetHeight;
@@ -658,6 +659,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const onMouseUp = () => {
                 document.body.style.cursor = '';
                 resizer.classList.remove('resizing');
+                document.body.classList.remove('layout-resizing');
                 window.removeEventListener('mousemove', onMouseMove);
                 window.removeEventListener('mouseup', onMouseUp);
             };
@@ -673,8 +675,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (controlsPanel && controlsResizer) {
         controlsResizer.addEventListener('mousedown', (e) => {
             e.preventDefault();
-            document.body.style.cursor = 'ew-resize';
+            document.body.style.cursor = 'col-resize';
             controlsResizer.classList.add('resizing');
+            document.body.classList.add('layout-resizing');
             const startX = e.clientX;
             const startWidth = controlsPanel.offsetWidth;
             
@@ -688,6 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const onMouseUp = () => {
                 document.body.style.cursor = '';
                 controlsResizer.classList.remove('resizing');
+                document.body.classList.remove('layout-resizing');
                 window.removeEventListener('mousemove', onMouseMove);
                 window.removeEventListener('mouseup', onMouseUp);
             };
@@ -696,27 +700,31 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Debug Panel Horizontal Resize (dragging left increases width)
+    // Debug Panel Horizontal Resize (adjusts panel width)
     const debugPanel = document.getElementById('debug-panel');
     const debugResizer = document.getElementById('debug-resize-handle');
+    
     if (debugPanel && debugResizer) {
         debugResizer.addEventListener('mousedown', (e) => {
             e.preventDefault();
-            document.body.style.cursor = 'ew-resize';
+            document.body.style.cursor = 'col-resize';
             debugResizer.classList.add('resizing');
+            document.body.classList.add('layout-resizing');
+            
             const startX = e.clientX;
             const startWidth = debugPanel.offsetWidth;
             
             const onMouseMove = (moveEvent) => {
                 const dx = moveEvent.clientX - startX;
                 let newWidth = startWidth - dx;
-                newWidth = Math.max(450, Math.min(900, newWidth));
+                newWidth = Math.max(260, Math.min(500, newWidth));
                 debugPanel.style.width = `${newWidth}px`;
             };
             
             const onMouseUp = () => {
                 document.body.style.cursor = '';
                 debugResizer.classList.remove('resizing');
+                document.body.classList.remove('layout-resizing');
                 window.removeEventListener('mousemove', onMouseMove);
                 window.removeEventListener('mouseup', onMouseUp);
             };
@@ -725,27 +733,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Call Stack vs Variables Column Resize
-    const stackColumn = document.getElementById('debug-column-left');
-    const stackResizer = document.getElementById('stack-column-resize-handle');
-    if (stackColumn && stackResizer) {
+    // Call Stack Section Height Resize
+    const stackSection = document.getElementById('stack-section');
+    const stackResizer = document.getElementById('stack-resize-handle');
+    if (stackSection && stackResizer) {
         stackResizer.addEventListener('mousedown', (e) => {
             e.preventDefault();
-            document.body.style.cursor = 'ew-resize';
+            document.body.style.cursor = 'row-resize';
             stackResizer.classList.add('resizing');
-            const startX = e.clientX;
-            const startWidth = stackColumn.offsetWidth;
+            document.body.classList.add('layout-resizing');
+            const startY = e.clientY;
+            const startHeight = stackSection.offsetHeight;
             
             const onMouseMove = (moveEvent) => {
-                const dx = moveEvent.clientX - startX;
-                let newWidth = startWidth + dx;
-                newWidth = Math.max(150, Math.min(400, newWidth));
-                stackColumn.style.width = `${newWidth}px`;
+                const dy = moveEvent.clientY - startY;
+                let newHeight = startHeight + dy;
+                newHeight = Math.max(80, Math.min(500, newHeight));
+                stackSection.style.height = `${newHeight}px`;
+                stackSection.style.flex = 'none';
             };
             
             const onMouseUp = () => {
                 document.body.style.cursor = '';
                 stackResizer.classList.remove('resizing');
+                document.body.classList.remove('layout-resizing');
                 window.removeEventListener('mousemove', onMouseMove);
                 window.removeEventListener('mouseup', onMouseUp);
             };
@@ -760,8 +771,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (variablesSection && varsResizer) {
         varsResizer.addEventListener('mousedown', (e) => {
             e.preventDefault();
-            document.body.style.cursor = 'ns-resize';
+            document.body.style.cursor = 'row-resize';
             varsResizer.classList.add('resizing');
+            document.body.classList.add('layout-resizing');
             const startY = e.clientY;
             const startHeight = variablesSection.offsetHeight;
             
@@ -775,6 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const onMouseUp = () => {
                 document.body.style.cursor = '';
                 varsResizer.classList.remove('resizing');
+                document.body.classList.remove('layout-resizing');
                 window.removeEventListener('mousemove', onMouseMove);
                 window.removeEventListener('mouseup', onMouseUp);
             };
@@ -782,4 +795,100 @@ document.addEventListener('DOMContentLoaded', () => {
             window.addEventListener('mouseup', onMouseUp);
         });
     }
+
+    // Premium Card Drag-and-Drop Docking System
+    const cards = document.querySelectorAll('.card');
+    const slots = document.querySelectorAll('.slot');
+    let draggedCard = null;
+
+    cards.forEach(card => {
+        card.setAttribute('draggable', 'true');
+        
+        let isHeaderClick = false;
+
+        card.addEventListener('mousedown', (e) => {
+            const handle = card.querySelector('.drag-handle');
+            if (handle && handle.contains(e.target) && !e.target.closest('button') && !e.target.closest('select') && !e.target.closest('input')) {
+                isHeaderClick = true;
+            } else {
+                isHeaderClick = false;
+            }
+        });
+
+        card.addEventListener('dragstart', (e) => {
+            if (!isHeaderClick) {
+                e.preventDefault();
+                return;
+            }
+            draggedCard = card;
+            card.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', card.id);
+            e.dataTransfer.effectAllowed = 'move';
+            
+            document.body.classList.add('dragging-active');
+        });
+
+        card.addEventListener('dragend', () => {
+            card.classList.remove('dragging');
+            document.body.classList.remove('dragging-active');
+            draggedCard = null;
+            isHeaderClick = false;
+            slots.forEach(s => s.classList.remove('drag-over'));
+        });
+    });
+
+    slots.forEach(slot => {
+        let dragEnterCounter = 0;
+
+        slot.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        });
+
+        slot.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            dragEnterCounter++;
+            if (draggedCard && !slot.contains(draggedCard)) {
+                slot.classList.add('drag-over');
+            }
+        });
+
+        slot.addEventListener('dragleave', () => {
+            dragEnterCounter--;
+            if (dragEnterCounter <= 0) {
+                dragEnterCounter = 0;
+                slot.classList.remove('drag-over');
+            }
+        });
+
+        slot.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragEnterCounter = 0;
+            slot.classList.remove('drag-over');
+            
+            const cardId = e.dataTransfer.getData('text/plain');
+            const sourceCard = document.getElementById(cardId);
+            
+            if (sourceCard && !slot.contains(sourceCard)) {
+                const targetCard = slot.querySelector('.card');
+                if (targetCard) {
+                    const sourceParentSlot = sourceCard.parentNode;
+                    
+                    // Swap the elements in the DOM! Keep card as firstChild in slot wrappers
+                    sourceParentSlot.insertBefore(targetCard, sourceParentSlot.firstChild);
+                    slot.insertBefore(sourceCard, slot.firstChild);
+                    
+                    // Trigger Monaco Layout recalculation if editor was moved
+                    if (window.editor) {
+                        setTimeout(() => {
+                            window.editor.layout();
+                        }, 50);
+                    }
+                    
+                    // Trigger SVG zoom recalculation
+                    window.dispatchEvent(new Event('resize'));
+                }
+            }
+        });
+    });
 });
